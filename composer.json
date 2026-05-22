@@ -1,0 +1,79 @@
+{
+  "name": "kosmosafive/production-calendar",
+  "description": "Производственный календарь",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kosmosafive/production-calendar",
+  "type": "library",
+  "minimum-stability": "stable",
+  "keywords": [
+    "calendar",
+    "schedule",
+    "production schedule",
+    "holiday",
+    "holiday calendar",
+    "production",
+    "production calendar",
+    "working",
+    "working calendar"
+  ],
+  "authors": [
+    {
+      "name": "Siarhei Buinevich",
+      "email": "a5-kosmos@yandex.ru",
+      "homepage": "https://t.me/kosmosafive",
+      "role": "Author"
+    }
+  ],
+  "require": {
+    "php": "^8.4",
+    "ext-json": "*",
+    "psr/http-factory": "^1.1",
+    "psr/http-client": "^1.0",
+    "psr/simple-cache": "^3.0"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-latest",
+    "phpstan/phpstan": "^2.1",
+    "rector/rector": "^2.4",
+    "lendable/composer-license-checker": "^1.4",
+    "shipmonk/composer-dependency-analyser": "^1.8",
+    "friendsofphp/php-cs-fixer": "^3.95",
+    "pestphp/pest": "^4.7",
+    "mockery/mockery": "^1.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Kosmosafive\\ProductionCalendar\\": "src/"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/pest",
+    "test:coverage": "vendor/bin/pest --coverage",
+    "format": "vendor/bin/php-cs-fixer fix --ansi",
+    "check-all": [
+      "@analyse",
+      "@test",
+      "@dependency:check",
+      "@license:check"
+    ],
+    "analyse": "vendor/bin/phpstan analyse -c phpstan.neon --ansi",
+    "rector:dry-run": "vendor/bin/rector process --config rector.php --dry-run --clear-cache --ansi",
+    "rector:process": "vendor/bin/rector process --config rector.php --clear-cache --ansi",
+    "license:check": "vendor/bin/composer-license-checker --allow-file .allowed-licenses.php --ansi",
+    "dependency:check": "vendor/bin/composer-dependency-analyser"
+  },
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "suggest": {
+    "guzzlehttp/guzzle": "Для использования XmlCalendarProvider (или любой другой PSR-18 клиент)",
+    "guzzlehttp/psr7": "Для реализации PSR-17 RequestFactory",
+    "symfony/cache": "Для использования CachedHolidayProvider (реализация PSR-16)"
+  },
+  "support": {
+    "issues": "https://github.com",
+    "source": "https://github.com/kosmosafive/production-calendar"
+  }
+}

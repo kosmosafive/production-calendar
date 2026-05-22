@@ -36,7 +36,12 @@ trait JsonMapper
                     $dayType = DayType::Holiday;
                 }
 
-                $dateString = sprintf('%d-%s-%s', $year, $month['month'], (int) $day);
+                $dateString = sprintf(
+                    '%d-%s-%s',
+                    $year,
+                    str_pad((string) $month['month'], 2, '0', STR_PAD_LEFT),
+                    str_pad((string) (int) $day, 2, '0', STR_PAD_LEFT)
+                );
 
                 $result[$dateString] = new Holiday(
                     date: new DateTimeImmutable($dateString),

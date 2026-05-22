@@ -1,0 +1,15 @@
+parameters:
+  editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
+  editorUrlTitle: '%%relFile%%:%%line%%'
+  level: 5
+  paths:
+    - /src
+  bootstrapFiles:
+    - /vendor/autoload.php
+  tmpDir: tmp/phpstan
+  parallel:
+      jobSize: 20
+      maximumNumberOfProcesses: 8
+      minimumNumberOfJobsPerProcess: 2
+  treatPhpDocTypesAsCertain: false
+

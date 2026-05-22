@@ -32,8 +32,7 @@ class XmlCalendarProvider implements HolidayProviderInterface
     {
         $uri = sprintf(static::URI_FORMAT, $country, $year);
         $request = $this->requestFactory
-            ->createRequest('GET', $uri)
-            ->withHeader('Accept', 'application/json');
+            ->createRequest('GET', $uri);
 
         $response = $this->httpClient->sendRequest($request);
 
@@ -43,7 +42,7 @@ class XmlCalendarProvider implements HolidayProviderInterface
             );
         }
 
-        $data = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        $data = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
         return $this->mapResponse($data, $year);
     }

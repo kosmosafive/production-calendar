@@ -5,26 +5,25 @@ declare(strict_types=1);
 namespace Kosmosafive\ProductionCalendar;
 
 use DateTimeImmutable;
-use DateTimeInterface;
 use Generator;
 
 interface ProductionCalendarInterface
 {
-    public function isWorkday(DateTimeInterface $date): bool;
+    public function isWorkday(DateTimeImmutable $date): bool;
 
-    public function countWorkdays(DateTimeInterface $start, DateTimeInterface $end): int;
+    public function countWorkdays(DateTimeImmutable $start, DateTimeImmutable $end): int;
 
-    public function addWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable;
+    public function addWorkdays(DateTimeImmutable $date, int $days): DateTimeImmutable;
 
-    public function subtractWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable;
+    public function subtractWorkdays(DateTimeImmutable $date, int $days): DateTimeImmutable;
 
-    public function getClosestWorkday(DateTimeInterface $date, bool $forward = true): DateTimeImmutable;
+    public function getClosestWorkday(DateTimeImmutable $date, bool $forward = true): DateTimeImmutable;
 
-    public function getWorkdaysIterator(DateTimeInterface $start, DateTimeInterface $end): Generator;
+    public function getWorkdaysIterator(DateTimeImmutable $start, DateTimeImmutable $end): Generator;
 
-    public function getFullCalendarIterator(DateTimeInterface $start, DateTimeInterface $end): Generator;
+    public function getFullCalendarIterator(DateTimeImmutable $start, DateTimeImmutable $end): Generator;
 
-    public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool;
+    public function hasHolidays(DateTimeImmutable $start, DateTimeImmutable $end): bool;
 
     public function clearCache(): void;
 }

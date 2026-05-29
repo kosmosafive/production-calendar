@@ -46,8 +46,7 @@ class ProductionCalendar implements ProductionCalendarInterface
             return $this->cache[$year][$dateKey]->type->isWorking();
         }
 
-        $dayOfWeek = (int) $date->format('N');
-        return $dayOfWeek <= 5;
+        return (int) $date->format('N') <= 5;
     }
 
     /**
@@ -94,6 +93,10 @@ class ProductionCalendar implements ProductionCalendarInterface
      */
     public function addWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
     {
+        if ($days === 0) {
+            return DateTimeImmutable::createFromInterface($date);
+        }
+
         $currentDate = DateTimeImmutable::createFromInterface($date);
         $step = $days > 0 ? 1 : -1;
         $remaining = abs($days);
@@ -101,7 +104,7 @@ class ProductionCalendar implements ProductionCalendarInterface
         while ($remaining > 0) {
             $currentDate = $currentDate->modify($step . ' day');
             if ($this->isWorkday($currentDate)) {
-                $remaining--;
+                --$remaining;
             }
         }
 
@@ -124,9 +127,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      */
     public function getWorkdaysIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
     {
-        $datePeriod = $this->createDatePeriod($start, $end);
-
-        foreach ($datePeriod as $date) {
+        foreach ($this->createDatePeriod($start, $end) as $date) {
             if ($this->isWorkday($date)) {
                 yield DateTimeImmutable::createFromInterface($date);
             }
@@ -138,12 +139,16 @@ class ProductionCalendar implements ProductionCalendarInterface
      */
     public function getClosestWorkday(DateTimeInterface $date, bool $forward = true): DateTimeImmutable
     {
+        if ($this->isWorkday($date)) {
+            return DateTimeImmutable::createFromInterface($date);
+        }
+
         $currentDate = DateTimeImmutable::createFromInterface($date);
         $step = $forward ? 1 : -1;
 
-        while (!$this->isWorkday($currentDate)) {
+        do {
             $currentDate = $currentDate->modify($step . ' day');
-        }
+        } while (!$this->isWorkday($currentDate));
 
         return $currentDate;
     }
@@ -156,9 +161,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      */
     public function getFullCalendarIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
     {
-        $datePeriod = $this->createDatePeriod($start, $end);
-
-        foreach ($datePeriod as $date) {
+        foreach ($this->createDatePeriod($start, $end) as $date) {
             $year = (int) $date->format(self::YEAR_FORMAT);
             $dateKey = $date->format(self::DATE_FORMAT);
             $dayOfWeek = (int) $date->format('N');
@@ -197,7 +200,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      */
     public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool
     {
-        foreach ($this->getWorkdaysIterator($start, $end) as $date) {
+        foreach ($this->createDatePeriod($start, $end) as $date) {
             if (!$this->isWorkday($date)) {
                 return true;
             }

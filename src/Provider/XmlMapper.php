@@ -80,13 +80,16 @@ trait XmlMapper
         return $holidays;
     }
 
+    /**
+     * @throws RuntimeException
+     */
     private function mapDayType(int $type): DayType
     {
         return match ($type) {
             1 => DayType::Holiday,
             2 => DayType::PreHoliday,
             3 => DayType::Transferred,
-            default => throw new RuntimeException('Unknown day type: ' . $type)
+            default => throw new RuntimeException('Unknown day type: ' . $type),
         };
     }
 }

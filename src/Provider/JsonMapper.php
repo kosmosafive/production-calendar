@@ -6,10 +6,15 @@ namespace Kosmosafive\ProductionCalendar\Provider;
 
 use DateTimeImmutable;
 use Kosmosafive\ProductionCalendar\ValueObject\Day;
-use Kosmosafive\ProductionCalendar\ValueObject\DayType;
+use Kosmosafive\ProductionCalendar\ValueObject\Day\Type;
 
 trait JsonMapper
 {
+    /**
+     * @param array{months: array<int, array{month: int|string, days: string}>, transitions: array<int, array{from: string, to: string}>} $data
+     *
+     * @return array<string, Day>
+     */
     protected function mapResponse(array $data, int $year): array
     {
         $result = [];
@@ -30,18 +35,18 @@ trait JsonMapper
 
             foreach ($days as $day) {
                 if (str_ends_with($day, '+')) {
-                    $dayType = DayType::Transferred;
+                    $dayType = Type::Transferred;
                 } elseif (str_ends_with($day, '*')) {
-                    $dayType = DayType::PreHoliday;
+                    $dayType = Type::PreHoliday;
                 } else {
-                    $dayType = DayType::Holiday;
+                    $dayType = Type::Holiday;
                 }
 
                 $dateString = sprintf(
                     '%d-%s-%s',
                     $year,
                     str_pad((string) $month['month'], 2, '0', STR_PAD_LEFT),
-                    str_pad((string) (int) $day, 2, '0', STR_PAD_LEFT)
+                    str_pad(rtrim($day, '*+'), 2, '0', STR_PAD_LEFT)
                 );
 
                 $result[$dateString] = new Day(

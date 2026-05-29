@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Kosmosafive\ProductionCalendar\Provider\JsonProvider;
-use Kosmosafive\ProductionCalendar\ValueObject\DayType;
+use Kosmosafive\ProductionCalendar\ValueObject\Day\Type;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
@@ -31,7 +31,7 @@ it('fetches and parses calendar data from API', function () {
 
     expect($holidays)->toBeArray()
         ->and($holidays)->toHaveCount(122)
-        ->and($holidays['2026-01-01']->type)->toBe(DayType::Holiday)
+        ->and($holidays['2026-01-01']->type)->toBe(Type::Holiday)
         ->and($holidays['2026-01-01']->name)->toBe('')
-        ->and($holidays['2026-04-30']->type)->toBe(DayType::PreHoliday);
+        ->and($holidays['2026-04-30']->type)->toBe(Type::PreHoliday);
 });

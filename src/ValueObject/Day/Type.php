@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Kosmosafive\ProductionCalendar\ValueObject;
+namespace Kosmosafive\ProductionCalendar\ValueObject\Day;
 
-enum DayType: int
+enum Type: int
 {
     case Holiday = 1;
     case PreHoliday = 2;

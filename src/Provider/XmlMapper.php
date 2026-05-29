@@ -7,7 +7,7 @@ namespace Kosmosafive\ProductionCalendar\Provider;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Kosmosafive\ProductionCalendar\ValueObject\Day;
-use Kosmosafive\ProductionCalendar\ValueObject\DayType;
+use Kosmosafive\ProductionCalendar\ValueObject\Day\Type;
 use RuntimeException;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -80,13 +80,16 @@ trait XmlMapper
         return $holidays;
     }
 
-    private function mapDayType(int $type): DayType
+    /**
+     * @throws RuntimeException
+     */
+    private function mapDayType(int $type): Type
     {
         return match ($type) {
-            1 => DayType::Holiday,
-            2 => DayType::PreHoliday,
-            3 => DayType::Transferred,
-            default => throw new RuntimeException('Unknown day type: ' . $type)
+            1 => Type::Holiday,
+            2 => Type::PreHoliday,
+            3 => Type::Transferred,
+            default => throw new RuntimeException('Unknown day type: ' . $type),
         };
     }
 }

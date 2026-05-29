@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Kosmosafive\ProductionCalendar\Provider\XmlCalendarProvider;
-use Kosmosafive\ProductionCalendar\ValueObject\DayType;
+use Kosmosafive\ProductionCalendar\ValueObject\Day\Type;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
@@ -67,9 +67,9 @@ it('fetches and parses calendar data from XML API', function () {
 
     expect($holidays)->toBeArray()
         ->and($holidays)->toHaveCount(22)
-        ->and($holidays['2026-01-01']->type)->toBe(DayType::Holiday)
+        ->and($holidays['2026-01-01']->type)->toBe(Type::Holiday)
         ->and($holidays['2026-01-01']->name)->toBe('Новогодние каникулы')
-        ->and($holidays['2026-05-08']->type)->toBe(DayType::PreHoliday)
+        ->and($holidays['2026-05-08']->type)->toBe(Type::PreHoliday)
         ->and($holidays['2026-01-09']->transferredFrom)->not()->toBeNull()
         ->and($holidays['2026-01-09']->transferredFrom->format('m-d'))->toBe('01-03');
 });

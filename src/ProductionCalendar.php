@@ -12,9 +12,11 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Generator;
 use InvalidArgumentException;
+use Kosmosafive\ProductionCalendar\Cache\LimitedInMemoryCache;
 use Kosmosafive\ProductionCalendar\Provider\ProviderInterface;
 use Kosmosafive\ProductionCalendar\ValueObject\CalendarDay;
 use Kosmosafive\ProductionCalendar\ValueObject\Day\Type;
+use Psr\SimpleCache\CacheInterface;
 
 class ProductionCalendar implements ProductionCalendarInterface
 {
@@ -22,28 +24,28 @@ class ProductionCalendar implements ProductionCalendarInterface
 
     private const string YEAR_FORMAT = 'Y';
 
-    private array $cache = [];
-
     public function __construct(
         private readonly ProviderInterface $provider,
-        private readonly string $country
+        private readonly string $country,
+        private readonly CacheInterface $cache = new LimitedInMemoryCache()
     ) {
         if (!preg_match('/^[a-z]{2}$/', $this->country)) {
             throw new InvalidArgumentException('Country code must be 2 lowercase letters');
         }
     }
 
+    /**
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
     public function isWorkday(DateTimeInterface $date): bool
     {
         $year = (int) $date->format(self::YEAR_FORMAT);
         $dateKey = $date->format(self::DATE_FORMAT);
 
-        if (!isset($this->cache[$year])) {
-            $this->cache[$year] = $this->provider->getConfiguration($this->country, $year);
-        }
+        $yearData = $this->getYearData($year);
 
-        if (isset($this->cache[$year][$dateKey])) {
-            return $this->cache[$year][$dateKey]->type->isWorking();
+        if (isset($yearData[$dateKey])) {
+            return $yearData[$dateKey]->type->isWorking();
         }
 
         return (int) $date->format('N') <= 5;
@@ -52,6 +54,7 @@ class ProductionCalendar implements ProductionCalendarInterface
     /**
      * @throws DateMalformedPeriodStringException
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function countWorkdays(DateTimeInterface $start, DateTimeInterface $end): int
     {
@@ -89,7 +92,11 @@ class ProductionCalendar implements ProductionCalendarInterface
     }
 
     /**
+     * Добавляет рабочие дни к дате. Отрицательное значение $days
+     * эквивалентно вызову subtractWorkdays().
+     *
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function addWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
     {
@@ -113,6 +120,7 @@ class ProductionCalendar implements ProductionCalendarInterface
 
     /**
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function subtractWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
     {
@@ -124,6 +132,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      *
      * @throws DateMalformedPeriodStringException
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function getWorkdaysIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
     {
@@ -136,6 +145,7 @@ class ProductionCalendar implements ProductionCalendarInterface
 
     /**
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function getClosestWorkday(DateTimeInterface $date, bool $forward = true): DateTimeImmutable
     {
@@ -158,6 +168,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      *
      * @throws DateMalformedPeriodStringException
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function getFullCalendarIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
     {
@@ -167,13 +178,10 @@ class ProductionCalendar implements ProductionCalendarInterface
             $dayOfWeek = (int) $date->format('N');
             $isWeekend = $dayOfWeek >= 6;
 
-            if (!isset($this->cache[$year])) {
-                $this->cache[$year] = $this->provider->getConfiguration($this->country, $year);
-            }
+            $yearData = $this->getYearData($year);
+            $holiday = $yearData[$dateKey] ?? null;
 
-            $holiday = $this->cache[$year][$dateKey] ?? null;
-
-            if ($holiday) {
+            if ($holiday !== null) {
                 $type = $holiday->type;
                 $isStandardWorkday = $type->equals(Type::PreHoliday);
                 $name = $holiday->name;
@@ -197,6 +205,7 @@ class ProductionCalendar implements ProductionCalendarInterface
     /**
      * @throws DateMalformedPeriodStringException
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool
     {
@@ -207,5 +216,24 @@ class ProductionCalendar implements ProductionCalendarInterface
         }
 
         return false;
+    }
+
+    public function clearCache(): void
+    {
+        $this->cache->clear();
+    }
+
+    /**
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    private function getYearData(int $year): array
+    {
+        $cacheKey = (string) $year;
+
+        if (!$this->cache->has($cacheKey)) {
+            $this->cache->set($cacheKey, $this->provider->getConfiguration($this->country, $year));
+        }
+
+        return $this->cache->get($cacheKey);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kosmosafive\ProductionCalendar\Provider;
 
 use DateMalformedStringException;
+use RuntimeException;
 
 class XmlProvider implements ProviderInterface
 {
@@ -28,7 +29,10 @@ class XmlProvider implements ProviderInterface
         return $this->mapResponse($data, $year);
     }
 
-    public function getContent(string $country, int $year): string
+    /**
+     * @throws RuntimeException
+     */
+    protected function getContent(string $country, int $year): string
     {
         $filePath = sprintf('%s/%s_%d.xml', $this->directory, $country, $year);
 
@@ -36,6 +40,12 @@ class XmlProvider implements ProviderInterface
             return '';
         }
 
-        return file_get_contents($filePath);
+        $content = file_get_contents($filePath);
+
+        if ($content === false) {
+            throw new RuntimeException(sprintf('Failed to read file: %s', $filePath));
+        }
+
+        return $content;
     }
 }

@@ -13,6 +13,7 @@ use RuntimeException;
 class XmlCalendarProvider implements ProviderInterface
 {
     use XmlMapper;
+
     protected const string URI_FORMAT = 'https://xmlcalendar.ru/data/%s/%d/calendar.xml';
 
     public function __construct(

@@ -33,19 +33,19 @@ trait XmlMapper
         $holidays = [];
 
         $holidayTitles = [];
-        $crawler->filter('holidays holiday')->each(function (Crawler $node) use (&$holidayTitles) {
-            $id = $node->attr('id');
-            $title = $node->attr('title');
+        $crawler->filter('holidays holiday')->each(function (Crawler $crawler) use (&$holidayTitles): void {
+            $id = $crawler->attr('id');
+            $title = $crawler->attr('title');
             if ($id !== null && $title !== null) {
                 $holidayTitles[$id] = $title;
             }
         });
 
-        $crawler->filter('days day')->each(function (Crawler $node) use (&$holidays, $year, $holidayTitles) {
-            $dayAttr = $node->attr('d');
-            $typeAttr = $node->attr('t');
-            $holidayId = $node->attr('h');
-            $transferredFrom = $node->attr('f');
+        $crawler->filter('days day')->each(function (Crawler $crawler) use (&$holidays, $year, $holidayTitles): void {
+            $dayAttr = $crawler->attr('d');
+            $typeAttr = $crawler->attr('t');
+            $holidayId = $crawler->attr('h');
+            $transferredFrom = $crawler->attr('f');
 
             if ($dayAttr === null || $typeAttr === null) {
                 return;

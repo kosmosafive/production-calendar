@@ -18,7 +18,7 @@ class CompositeProvider implements ProviderInterface
     {
         foreach ($this->providers as $provider) {
             $providerResult = $provider->getConfiguration($country, $year);
-            if (!empty($providerResult)) {
+            if ($providerResult !== []) {
                 return $providerResult;
             }
         }

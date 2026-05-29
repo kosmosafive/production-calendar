@@ -11,39 +11,50 @@ use DatePeriod;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Generator;
-use Kosmosafive\ProductionCalendar\Provider\HolidayProviderInterface;
+use InvalidArgumentException;
+use Kosmosafive\ProductionCalendar\Cache\LimitedInMemoryCache;
+use Kosmosafive\ProductionCalendar\Provider\ProviderInterface;
 use Kosmosafive\ProductionCalendar\ValueObject\CalendarDay;
-use Kosmosafive\ProductionCalendar\ValueObject\DayType;
+use Kosmosafive\ProductionCalendar\ValueObject\Day\Type;
+use Psr\SimpleCache\CacheInterface;
 
-class ProductionCalendar
+class ProductionCalendar implements ProductionCalendarInterface
 {
-    private array $cache = [];
+    private const string DATE_FORMAT = 'Y-m-d';
+
+    private const string YEAR_FORMAT = 'Y';
 
     public function __construct(
-        private readonly HolidayProviderInterface $provider,
-        private readonly string $country
+        private readonly ProviderInterface $provider,
+        private readonly string $country,
+        private readonly CacheInterface $cache = new LimitedInMemoryCache()
     ) {
+        if (!preg_match('/^[a-z]{2}$/', $this->country)) {
+            throw new InvalidArgumentException('Country code must be 2 lowercase letters');
+        }
     }
 
+    /**
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
     public function isWorkday(DateTimeInterface $date): bool
     {
-        $year = (int) $date->format('Y');
-        $dateKey = $date->format('Y-m-d');
+        $year = (int) $date->format(self::YEAR_FORMAT);
+        $dateKey = $date->format(self::DATE_FORMAT);
 
-        if (!isset($this->cache[$year])) {
-            $this->cache[$year] = $this->provider->getHolidays($this->country, $year);
+        $yearData = $this->getYearData($year);
+
+        if (isset($yearData[$dateKey])) {
+            return $yearData[$dateKey]->type->isWorking();
         }
 
-        if (isset($this->cache[$year][$dateKey])) {
-            return $this->cache[$year][$dateKey]->type->isWorking();
-        }
-
-        $dayOfWeek = (int) $date->format('N');
-        return $dayOfWeek <= 5;
+        return (int) $date->format('N') <= 5;
     }
 
     /**
      * @throws DateMalformedPeriodStringException
+     * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function countWorkdays(DateTimeInterface $start, DateTimeInterface $end): int
     {
@@ -61,9 +72,18 @@ class ProductionCalendar
 
     /**
      * @throws DateMalformedPeriodStringException
+     * @throws DateMalformedStringException
      */
     protected function createDatePeriod(DateTimeInterface $start, DateTimeInterface $end): DatePeriod
     {
+        if ($end < $start) {
+            throw new DateMalformedPeriodStringException('End date must be after start date');
+        }
+
+        if (!($end instanceof DateTimeImmutable)) {
+            $end = DateTimeImmutable::createFromInterface($end);
+        }
+
         return new DatePeriod(
             $start,
             new DateInterval('P1D'),
@@ -72,10 +92,18 @@ class ProductionCalendar
     }
 
     /**
+     * Добавляет рабочие дни к дате. Отрицательное значение $days
+     * эквивалентно вызову subtractWorkdays().
+     *
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function addWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
     {
+        if ($days === 0) {
+            return DateTimeImmutable::createFromInterface($date);
+        }
+
         $currentDate = DateTimeImmutable::createFromInterface($date);
         $step = $days > 0 ? 1 : -1;
         $remaining = abs($days);
@@ -83,7 +111,7 @@ class ProductionCalendar
         while ($remaining > 0) {
             $currentDate = $currentDate->modify($step . ' day');
             if ($this->isWorkday($currentDate)) {
-                $remaining--;
+                --$remaining;
             }
         }
 
@@ -91,9 +119,20 @@ class ProductionCalendar
     }
 
     /**
+     * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    public function subtractWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
+    {
+        return $this->addWorkdays($date, -$days);
+    }
+
+    /**
      * @return Generator<DateTimeImmutable>
      *
      * @throws DateMalformedPeriodStringException
+     * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function getWorkdaysIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
     {
@@ -108,15 +147,20 @@ class ProductionCalendar
 
     /**
      * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function getClosestWorkday(DateTimeInterface $date, bool $forward = true): DateTimeImmutable
     {
+        if ($this->isWorkday($date)) {
+            return DateTimeImmutable::createFromInterface($date);
+        }
+
         $currentDate = DateTimeImmutable::createFromInterface($date);
         $step = $forward ? 1 : -1;
 
-        while (!$this->isWorkday($currentDate)) {
+        do {
             $currentDate = $currentDate->modify($step . ' day');
-        }
+        } while (!$this->isWorkday($currentDate));
 
         return $currentDate;
     }
@@ -125,29 +169,28 @@ class ProductionCalendar
      * @return Generator<CalendarDay>
      *
      * @throws DateMalformedPeriodStringException
+     * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
     public function getFullCalendarIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
     {
         $datePeriod = $this->createDatePeriod($start, $end);
 
         foreach ($datePeriod as $date) {
-            $year = (int) $date->format('Y');
-            $dateKey = $date->format('Y-m-d');
+            $year = (int) $date->format(self::YEAR_FORMAT);
+            $dateKey = $date->format(self::DATE_FORMAT);
             $dayOfWeek = (int) $date->format('N');
             $isWeekend = $dayOfWeek >= 6;
 
-            if (!isset($this->cache[$year])) {
-                $this->cache[$year] = $this->provider->getHolidays($this->country, $year);
-            }
+            $yearData = $this->getYearData($year);
+            $holiday = $yearData[$dateKey] ?? null;
 
-            $holiday = $this->cache[$year][$dateKey] ?? null;
-
-            if ($holiday) {
+            if ($holiday !== null) {
                 $type = $holiday->type;
-                $isStandardWorkday = $type->equals(DayType::PreHoliday);
+                $isStandardWorkday = $type->equals(Type::PreHoliday);
                 $name = $holiday->name;
             } else {
-                $type = $isWeekend ? DayType::Weekend : DayType::Working;
+                $type = $isWeekend ? Type::Weekend : Type::Working;
                 $isStandardWorkday = !$isWeekend;
                 $name = '';
             }
@@ -161,5 +204,40 @@ class ProductionCalendar
                 transferredFrom: $holiday?->transferredFrom
             );
         }
+    }
+
+    /**
+     * @throws DateMalformedPeriodStringException
+     * @throws DateMalformedStringException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool
+    {
+        foreach ($this->getFullCalendarIterator($start, $end) as $date) {
+            if ($date->type === Type::Holiday) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function clearCache(): void
+    {
+        $this->cache->clear();
+    }
+
+    /**
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    private function getYearData(int $year): array
+    {
+        $cacheKey = (string) $year;
+
+        if (!$this->cache->has($cacheKey)) {
+            $this->cache->set($cacheKey, $this->provider->getConfiguration($this->country, $year));
+        }
+
+        return $this->cache->get($cacheKey);
     }
 }

@@ -28,8 +28,7 @@ return RectorConfig::configure()
         privatization: true,
         naming: true,
         instanceOf: true,
-        earlyReturn: true,
-        strictBooleans: true
+        earlyReturn: true
     )
     ->withSkip(
         [

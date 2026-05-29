@@ -1,7 +1,7 @@
 {
   "name": "kosmosafive/production-calendar",
   "description": "Производственный календарь",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "homepage": "https://github.com/kosmosafive/production-calendar",
   "type": "library",
   "minimum-stability": "stable",
@@ -27,9 +27,12 @@
   "require": {
     "php": "^8.4",
     "ext-json": "*",
+    "ext-dom": "*",
     "psr/http-factory": "^1.1",
     "psr/http-client": "^1.0",
-    "psr/simple-cache": "^3.0"
+    "psr/simple-cache": "^3.0",
+    "symfony/dom-crawler": "^7.0 || ^8.0",
+    "symfony/css-selector": "^7.0 || ^8.0"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",
@@ -39,7 +42,8 @@
     "shipmonk/composer-dependency-analyser": "^1.8",
     "friendsofphp/php-cs-fixer": "^3.95",
     "pestphp/pest": "^4.7",
-    "mockery/mockery": "^1.6"
+    "mockery/mockery": "^1.6",
+    "symfony/var-dumper": "^8.0"
   },
   "autoload": {
     "psr-4": {

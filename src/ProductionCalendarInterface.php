@@ -25,4 +25,6 @@ interface ProductionCalendarInterface
     public function getFullCalendarIterator(DateTimeInterface $start, DateTimeInterface $end): Generator;
 
     public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool;
+
+    public function clearCache(): void;
 }

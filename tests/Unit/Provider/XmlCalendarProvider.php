@@ -11,26 +11,81 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\RequestInterface;
 
-it('fetches and parses calendar data from API', function () {
+it('fetches and parses calendar data from XML API', function () {
     $client = mock(ClientInterface::class);
     $factory = mock(RequestFactoryInterface::class);
     $response = mock(ResponseInterface::class);
     $stream = mock(StreamInterface::class);
 
-    $json = '{"year":2026,"months":[{"month":1,"days":"1,2,3,4,5,6,7,8,9+,10,11,17,18,24,25,31"},{"month":2,"days":"1,7,8,14,15,21,22,23,28"},{"month":3,"days":"1,7,8,9+,14,15,21,22,28,29"},{"month":4,"days":"4,5,11,12,18,19,25,26,30*"},{"month":5,"days":"1,2,3,8*,9,10,11+,16,17,23,24,30,31"},{"month":6,"days":"6,7,11*,12,13,14,20,21,27,28"},{"month":7,"days":"4,5,11,12,18,19,25,26"},{"month":8,"days":"1,2,8,9,15,16,22,23,29,30"},{"month":9,"days":"5,6,12,13,19,20,26,27"},{"month":10,"days":"3,4,10,11,17,18,24,25,31"},{"month":11,"days":"1,3*,4,7,8,14,15,21,22,28,29"},{"month":12,"days":"5,6,12,13,19,20,26,27,31+"}],"transitions":[{"from":"01.03","to":"01.09"},{"from":"03.08","to":"03.09"},{"from":"05.09","to":"05.11"},{"from":"01.04","to":"12.31"}],"statistic":{"workdays":247,"holidays":118,"hours40":1972,"hours36":1774.4,"hours24":1181.6}}';
+    $xml = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<calendar year="2026" lang="ru" date="2025.09.30" country="ru">
+    <holidays>
+        <holiday id="1" title="Новогодние каникулы"/>
+        <holiday id="2" title="Рождество Христово"/>
+        <holiday id="3" title="День защитника Отечества"/>
+        <holiday id="4" title="Международный женский день"/>
+        <holiday id="5" title="Праздник Весны и Труда"/>
+        <holiday id="6" title="День Победы"/>
+        <holiday id="7" title="День России"/>
+        <holiday id="8" title="День народного единства"/>
+    </holidays>
+    <days>
+        <day d="01.01" t="1" h="1"/>
+        <day d="01.02" t="1" h="1"/>
+        <day d="01.03" t="1" h="1"/>
+        <day d="01.04" t="1" h="1"/>
+        <day d="01.05" t="1" h="1"/>
+        <day d="01.06" t="1" h="1"/>
+        <day d="01.07" t="1" h="2"/>
+        <day d="01.08" t="1" h="1"/>
+        <day d="01.09" t="1" f="01.03"/>
+        <day d="02.23" t="1" h="3"/>
+        <day d="03.08" t="1" h="4"/>
+        <day d="03.09" t="1" f="03.08"/>
+        <day d="04.30" t="2"/>
+        <day d="05.01" t="1" h="5"/>
+        <day d="05.08" t="2"/>
+        <day d="05.09" t="1" h="6"/>
+        <day d="05.11" t="1" f="05.09"/>
+        <day d="06.11" t="2"/>
+        <day d="06.12" t="1" h="7"/>
+        <day d="11.03" t="2"/>
+        <day d="11.04" t="1" h="8"/>
+        <day d="12.31" t="1" f="01.04"/>
+    </days>
+</calendar>
+XML;
 
     $factory->shouldReceive('createRequest')->andReturn(mock(RequestInterface::class));
     $client->shouldReceive('sendRequest')->andReturn($response);
-    $response->shouldReceive('getStatusCode')->andReturn(304);
+    $response->shouldReceive('getStatusCode')->andReturn(200);
     $response->shouldReceive('getBody')->andReturn($stream);
-    $stream->shouldReceive('getContents')->andReturn($json);
+    $stream->shouldReceive('__toString')->andReturn($xml);
 
     $provider = new XmlCalendarProvider($client, $factory);
-    $holidays = $provider->getHolidays( 'ru', 2026);
+    $holidays = $provider->getHolidays('ru', 2026);
 
     expect($holidays)->toBeArray()
-        ->and($holidays)->toHaveCount(2)
+        ->and($holidays)->toHaveCount(22)
         ->and($holidays['2026-01-01']->type)->toBe(DayType::Holiday)
-        ->and($holidays['2026-01-01']->name)->toBe('')
-        ->and($holidays['2026-05-08']->type)->toBe(DayType::PreHoliday);
+        ->and($holidays['2026-01-01']->name)->toBe('Новогодние каникулы')
+        ->and($holidays['2026-05-08']->type)->toBe(DayType::PreHoliday)
+        ->and($holidays['2026-01-09']->transferredFrom)->not()->toBeNull()
+        ->and($holidays['2026-01-09']->transferredFrom->format('m-d'))->toBe('01-03');
+});
+
+it('throws exception on HTTP error', function () {
+    $client = mock(ClientInterface::class);
+    $factory = mock(RequestFactoryInterface::class);
+    $response = mock(ResponseInterface::class);
+
+    $factory->shouldReceive('createRequest')->andReturn(mock(RequestInterface::class));
+    $client->shouldReceive('sendRequest')->andReturn($response);
+    $response->shouldReceive('getStatusCode')->andReturn(404);
+
+    $provider = new XmlCalendarProvider($client, $factory);
+
+    expect(fn () => $provider->getHolidays('ru', 2026))
+        ->toThrow(RuntimeException::class, 'Could not fetch calendar data for year 2026');
 });

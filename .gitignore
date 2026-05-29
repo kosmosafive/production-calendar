@@ -1,6 +1,9 @@
-/.idea
-/.php_cs.cache
-/vendor
-/composer.lock
-/tmp
-/package-lock.json
+```
+vendor/
+composer.lock
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+```

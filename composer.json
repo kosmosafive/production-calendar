@@ -27,9 +27,11 @@
   "require": {
     "php": "^8.4",
     "ext-json": "*",
+    "ext-dom": "*",
     "psr/http-factory": "^1.1",
     "psr/http-client": "^1.0",
-    "psr/simple-cache": "^3.0"
+    "psr/simple-cache": "^3.0",
+    "symfony/dom-crawler": "^6.0 || ^7.0"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest",

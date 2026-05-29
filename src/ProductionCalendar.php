@@ -214,7 +214,7 @@ class ProductionCalendar implements ProductionCalendarInterface
     public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool
     {
         foreach ($this->getFullCalendarIterator($start, $end) as $date) {
-            if ($date->type->equals(Type::Holiday)) {
+            if ($date->type === Type::Holiday) {
                 return true;
             }
         }

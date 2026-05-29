@@ -28,7 +28,7 @@ trait XmlMapper
      *
      * @throws DateMalformedStringException
      */
-    private function parseXml(Crawler $crawler, int $year): array
+    protected function parseXml(Crawler $crawler, int $year): array
     {
         $holidays = [];
 

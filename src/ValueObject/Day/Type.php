@@ -12,11 +12,6 @@ enum Type: int
     case Working = 4;
     case Weekend = 5;
 
-    public function equals(self $other): bool
-    {
-        return $this->value === $other->value;
-    }
-
     public function isWorking(): bool
     {
         return !$this->isNonWorking();

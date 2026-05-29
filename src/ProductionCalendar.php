@@ -22,6 +22,8 @@ class ProductionCalendar implements ProductionCalendarInterface
 
     private const string YEAR_FORMAT = 'Y';
 
+    private const int MAX_CACHE_YEARS = 5;
+
     private array $cache = [];
 
     public function __construct(
@@ -39,6 +41,7 @@ class ProductionCalendar implements ProductionCalendarInterface
         $dateKey = $date->format(self::DATE_FORMAT);
 
         if (!isset($this->cache[$year])) {
+            $this->cleanupCache($year);
             $this->cache[$year] = $this->provider->getConfiguration($this->country, $year);
         }
 
@@ -168,6 +171,7 @@ class ProductionCalendar implements ProductionCalendarInterface
             $isWeekend = $dayOfWeek >= 6;
 
             if (!isset($this->cache[$year])) {
+                $this->cleanupCache($year);
                 $this->cache[$year] = $this->provider->getConfiguration($this->country, $year);
             }
 
@@ -207,5 +211,21 @@ class ProductionCalendar implements ProductionCalendarInterface
         }
 
         return false;
+    }
+
+    /**
+     * Очищает кэш, удаляя старые записи для предотвращения утечки памяти.
+     * Оставляет только последние MAX_CACHE_YEARS лет.
+     */
+    private function cleanupCache(int $currentYear): void
+    {
+        if (count($this->cache) >= self::MAX_CACHE_YEARS) {
+            $minYear = $currentYear - self::MAX_CACHE_YEARS + 1;
+            $this->cache = array_filter(
+                $this->cache,
+                static fn (int $year): bool => $year >= $minYear,
+                ARRAY_FILTER_USE_KEY
+            );
+        }
     }
 }

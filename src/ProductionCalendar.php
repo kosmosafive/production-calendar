@@ -9,7 +9,6 @@ use DateMalformedPeriodStringException;
 use DateMalformedStringException;
 use DatePeriod;
 use DateTimeImmutable;
-use DateTimeInterface;
 use Generator;
 use InvalidArgumentException;
 use Kosmosafive\ProductionCalendar\Cache\LimitedInMemoryCache;
@@ -37,7 +36,7 @@ class ProductionCalendar implements ProductionCalendarInterface
     /**
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function isWorkday(DateTimeInterface $date): bool
+    public function isWorkday(DateTimeImmutable $date): bool
     {
         $year = (int) $date->format(self::YEAR_FORMAT);
         $dateKey = $date->format(self::DATE_FORMAT);
@@ -56,12 +55,12 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedStringException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function countWorkdays(DateTimeInterface $start, DateTimeInterface $end): int
+    public function countWorkdays(DateTimeImmutable $start, DateTimeImmutable $end): int
     {
         $count = 0;
-        $datePeriod = $this->createDatePeriod($start, $end);
+        $generator = $this->createDatePeriodIterator($start, $end);
 
-        foreach ($datePeriod as $date) {
+        foreach ($generator as $date) {
             if ($this->isWorkday($date)) {
                 $count++;
             }
@@ -74,21 +73,21 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedPeriodStringException
      * @throws DateMalformedStringException
      */
-    protected function createDatePeriod(DateTimeInterface $start, DateTimeInterface $end): DatePeriod
+    protected function createDatePeriodIterator(DateTimeImmutable $start, DateTimeImmutable $end): Generator
     {
         if ($end < $start) {
             throw new DateMalformedPeriodStringException('End date must be after start date');
         }
 
-        if (!($end instanceof DateTimeImmutable)) {
-            $end = DateTimeImmutable::createFromInterface($end);
-        }
-
-        return new DatePeriod(
+        $datePeriod = new DatePeriod(
             $start,
             new DateInterval('P1D'),
             $end->modify('+1 day')
         );
+
+        foreach ($datePeriod as $date) {
+            yield DateTimeImmutable::createFromInterface($date);
+        }
     }
 
     /**
@@ -98,7 +97,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedStringException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function addWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
+    public function addWorkdays(DateTimeImmutable $date, int $days): DateTimeImmutable
     {
         if ($days === 0) {
             return DateTimeImmutable::createFromInterface($date);
@@ -122,7 +121,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedStringException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function subtractWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
+    public function subtractWorkdays(DateTimeImmutable $date, int $days): DateTimeImmutable
     {
         return $this->addWorkdays($date, -$days);
     }
@@ -134,11 +133,9 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedStringException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function getWorkdaysIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
+    public function getWorkdaysIterator(DateTimeImmutable $start, DateTimeImmutable $end): Generator
     {
-        $datePeriod = $this->createDatePeriod($start, $end);
-
-        foreach ($datePeriod as $date) {
+        foreach ($this->createDatePeriodIterator($start, $end) as $date) {
             if ($this->isWorkday($date)) {
                 yield DateTimeImmutable::createFromInterface($date);
             }
@@ -149,7 +146,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedStringException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function getClosestWorkday(DateTimeInterface $date, bool $forward = true): DateTimeImmutable
+    public function getClosestWorkday(DateTimeImmutable $date, bool $forward = true): DateTimeImmutable
     {
         if ($this->isWorkday($date)) {
             return DateTimeImmutable::createFromInterface($date);
@@ -172,11 +169,11 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedStringException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function getFullCalendarIterator(DateTimeInterface $start, DateTimeInterface $end): Generator
+    public function getFullCalendarIterator(DateTimeImmutable $start, DateTimeImmutable $end): Generator
     {
-        $datePeriod = $this->createDatePeriod($start, $end);
+        $generator = $this->createDatePeriodIterator($start, $end);
 
-        foreach ($datePeriod as $date) {
+        foreach ($generator as $date) {
             $year = (int) $date->format(self::YEAR_FORMAT);
             $dateKey = $date->format(self::DATE_FORMAT);
             $dayOfWeek = (int) $date->format('N');
@@ -211,7 +208,7 @@ class ProductionCalendar implements ProductionCalendarInterface
      * @throws DateMalformedStringException
      * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool
+    public function hasHolidays(DateTimeImmutable $start, DateTimeImmutable $end): bool
     {
         foreach ($this->getFullCalendarIterator($start, $end) as $date) {
             if ($date->type === Type::Holiday) {

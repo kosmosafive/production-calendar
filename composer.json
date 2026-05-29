@@ -1,7 +1,7 @@
 {
   "name": "kosmosafive/production-calendar",
   "description": "Производственный календарь",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "homepage": "https://github.com/kosmosafive/production-calendar",
   "type": "library",
   "minimum-stability": "stable",

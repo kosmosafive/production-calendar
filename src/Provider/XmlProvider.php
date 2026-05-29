@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Kosmosafive\ProductionCalendar\Provider;
 
-use JsonException;
+use DateMalformedStringException;
 
-class JsonProvider implements ProviderInterface
+class XmlProvider implements ProviderInterface
 {
-    use JsonMapper;
+    use XmlMapper;
 
     protected readonly string $directory;
 
@@ -19,26 +19,21 @@ class JsonProvider implements ProviderInterface
     }
 
     /**
-     * @throws JsonException
+     * @throws DateMalformedStringException
      */
     public function getConfiguration(string $country, int $year): array
     {
-        $content = $this->getContent($country, $year);
-        if ($content === null) {
-            return [];
-        }
-
-        $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        $data = $this->getContent($country, $year);
 
         return $this->mapResponse($data, $year);
     }
 
-    protected function getContent(string $country, int $year): ?string
+    public function getContent(string $country, int $year): string
     {
-        $filePath = sprintf('%s/%s_%d.json', $this->directory, $country, $year);
+        $filePath = sprintf('%s/%s_%d.xml', $this->directory, $country, $year);
 
         if (!file_exists($filePath)) {
-            return null;
+            return '';
         }
 
         return file_get_contents($filePath);

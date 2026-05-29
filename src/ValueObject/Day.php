@@ -6,7 +6,7 @@ namespace Kosmosafive\ProductionCalendar\ValueObject;
 
 use DateTimeImmutable;
 
-readonly class Holiday
+readonly class Day
 {
     public function __construct(
         public DateTimeImmutable $date,

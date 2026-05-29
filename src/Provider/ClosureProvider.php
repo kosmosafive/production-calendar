@@ -6,7 +6,7 @@ namespace Kosmosafive\ProductionCalendar\Provider;
 
 use Closure;
 
-class ClosureProvider implements HolidayProviderInterface
+class ClosureProvider implements ProviderInterface
 {
     private readonly Closure $closure;
 
@@ -15,7 +15,7 @@ class ClosureProvider implements HolidayProviderInterface
         $this->closure = $closure(...);
     }
 
-    public function getHolidays(string $country, int $year): array
+    public function getConfiguration(string $country, int $year): array
     {
         return ($this->closure)($country, $year);
     }

@@ -12,7 +12,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Generator;
 use InvalidArgumentException;
-use Kosmosafive\ProductionCalendar\Provider\HolidayProviderInterface;
+use Kosmosafive\ProductionCalendar\Provider\ProviderInterface;
 use Kosmosafive\ProductionCalendar\ValueObject\CalendarDay;
 use Kosmosafive\ProductionCalendar\ValueObject\DayType;
 
@@ -23,7 +23,7 @@ class ProductionCalendar implements ProductionCalendarInterface
     private array $cache = [];
 
     public function __construct(
-        private readonly HolidayProviderInterface $provider,
+        private readonly ProviderInterface $provider,
         private readonly string $country
     ) {
         if (!preg_match('/^[a-z]{2}$/', $this->country)) {
@@ -37,7 +37,7 @@ class ProductionCalendar implements ProductionCalendarInterface
         $dateKey = $date->format(static::DATE_FORMAT);
 
         if (!isset($this->cache[$year])) {
-            $this->cache[$year] = $this->provider->getHolidays($this->country, $year);
+            $this->cache[$year] = $this->provider->getConfiguration($this->country, $year);
         }
 
         if (isset($this->cache[$year][$dateKey])) {
@@ -156,7 +156,7 @@ class ProductionCalendar implements ProductionCalendarInterface
             $isWeekend = $dayOfWeek >= 6;
 
             if (!isset($this->cache[$year])) {
-                $this->cache[$year] = $this->provider->getHolidays($this->country, $year);
+                $this->cache[$year] = $this->provider->getConfiguration($this->country, $year);
             }
 
             $holiday = $this->cache[$year][$dateKey] ?? null;

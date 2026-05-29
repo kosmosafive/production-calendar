@@ -7,10 +7,10 @@ namespace Kosmosafive\ProductionCalendar\Provider;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 
-class CachedProvider implements HolidayProviderInterface
+class CachedProvider implements ProviderInterface
 {
     public function __construct(
-        private readonly HolidayProviderInterface $wrapped,
+        private readonly ProviderInterface $wrapped,
         private readonly CacheInterface $cache,
         private readonly int $ttl = 86400
     ) {
@@ -19,7 +19,7 @@ class CachedProvider implements HolidayProviderInterface
     /**
      * @throws InvalidArgumentException
      */
-    public function getHolidays(string $country, int $year): array
+    public function getConfiguration(string $country, int $year): array
     {
         $cacheKey = sprintf('holiday_calendar_%s_%d', $country, $year);
 
@@ -29,7 +29,7 @@ class CachedProvider implements HolidayProviderInterface
             return $cachedData;
         }
 
-        $holidays = $this->wrapped->getHolidays($country, $year);
+        $holidays = $this->wrapped->getConfiguration($country, $year);
 
         $this->cache->set($cacheKey, $holidays, $this->ttl);
 

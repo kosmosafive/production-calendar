@@ -3,16 +3,16 @@
 declare(strict_types=1);
 
 use Kosmosafive\ProductionCalendar\ProductionCalendar;
-use Kosmosafive\ProductionCalendar\Provider\HolidayProviderInterface;
+use Kosmosafive\ProductionCalendar\Provider\ProviderInterface;
+use Kosmosafive\ProductionCalendar\ValueObject\Day;
 use Kosmosafive\ProductionCalendar\ValueObject\DayType;
-use Kosmosafive\ProductionCalendar\ValueObject\Holiday;
 
 beforeEach(function () {
-    $this->provider = mock(HolidayProviderInterface::class);
+    $this->provider = mock(ProviderInterface::class);
 
-    $this->provider->shouldReceive('getHolidays')->andReturn([
-        '2026-01-01' => new Holiday(new DateTimeImmutable('2026-01-01'), DayType::Holiday, 'New Year'),
-        '2026-01-03' => new Holiday(new DateTimeImmutable('2026-01-03'), DayType::Transferred),
+    $this->provider->shouldReceive('getConfiguration')->andReturn([
+        '2026-01-01' => new Day(new DateTimeImmutable('2026-01-01'), DayType::Holiday, 'New Year'),
+        '2026-01-03' => new Day(new DateTimeImmutable('2026-01-03'), DayType::Transferred),
     ]);
 
     $this->calendar = new ProductionCalendar($this->provider, 'ru');

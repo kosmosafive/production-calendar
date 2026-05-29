@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Kosmosafive\ProductionCalendar\Provider;
 
 use DateTimeImmutable;
+use Kosmosafive\ProductionCalendar\ValueObject\Day;
 use Kosmosafive\ProductionCalendar\ValueObject\DayType;
-use Kosmosafive\ProductionCalendar\ValueObject\Holiday;
 
 trait JsonMapper
 {
@@ -27,10 +27,11 @@ trait JsonMapper
 
         foreach ($data['months'] as $month) {
             $days = explode(',', (string) $month['days']);
+
             foreach ($days as $day) {
-                if (str_ends_with('+', $day)) {
+                if (str_ends_with($day, '+')) {
                     $dayType = DayType::Transferred;
-                } elseif (str_ends_with('*', $day)) {
+                } elseif (str_ends_with($day, '*')) {
                     $dayType = DayType::PreHoliday;
                 } else {
                     $dayType = DayType::Holiday;
@@ -43,7 +44,7 @@ trait JsonMapper
                     str_pad((string) (int) $day, 2, '0', STR_PAD_LEFT)
                 );
 
-                $result[$dateString] = new Holiday(
+                $result[$dateString] = new Day(
                     date: new DateTimeImmutable($dateString),
                     type: $dayType,
                     transferredFrom: $transitions[$dateString] ?? null

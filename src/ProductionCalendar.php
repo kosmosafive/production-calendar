@@ -11,24 +11,30 @@ use DatePeriod;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Generator;
+use InvalidArgumentException;
 use Kosmosafive\ProductionCalendar\Provider\HolidayProviderInterface;
 use Kosmosafive\ProductionCalendar\ValueObject\CalendarDay;
 use Kosmosafive\ProductionCalendar\ValueObject\DayType;
 
-class ProductionCalendar
+class ProductionCalendar implements ProductionCalendarInterface
 {
+    private const string DATE_FORMAT = 'Y-m-d';
+    private const string YEAR_FORMAT = 'Y';
     private array $cache = [];
 
     public function __construct(
         private readonly HolidayProviderInterface $provider,
         private readonly string $country
     ) {
+        if (!preg_match('/^[a-z]{2}$/', $this->country)) {
+            throw new InvalidArgumentException('Country code must be 2 lowercase letters');
+        }
     }
 
     public function isWorkday(DateTimeInterface $date): bool
     {
-        $year = (int) $date->format('Y');
-        $dateKey = $date->format('Y-m-d');
+        $year = (int) $date->format(static::YEAR_FORMAT);
+        $dateKey = $date->format(static::DATE_FORMAT);
 
         if (!isset($this->cache[$year])) {
             $this->cache[$year] = $this->provider->getHolidays($this->country, $year);
@@ -64,10 +70,15 @@ class ProductionCalendar
      */
     protected function createDatePeriod(DateTimeInterface $start, DateTimeInterface $end): DatePeriod
     {
+        if ($end < $start) {
+            throw new DateMalformedPeriodStringException('End date must be after start date');
+        }
+
+        $endDate = clone $end;
         return new DatePeriod(
             $start,
             new DateInterval('P1D'),
-            $end->modify('+1 day')
+            $endDate->modify('+1 day')
         );
     }
 
@@ -88,6 +99,14 @@ class ProductionCalendar
         }
 
         return $currentDate;
+    }
+
+    /**
+     * @throws DateMalformedStringException
+     */
+    public function subtractWorkdays(DateTimeInterface $date, int $days): DateTimeImmutable
+    {
+        return $this->addWorkdays($date, -$days);
     }
 
     /**
@@ -131,8 +150,8 @@ class ProductionCalendar
         $datePeriod = $this->createDatePeriod($start, $end);
 
         foreach ($datePeriod as $date) {
-            $year = (int) $date->format('Y');
-            $dateKey = $date->format('Y-m-d');
+            $year = (int) $date->format(static::YEAR_FORMAT);
+            $dateKey = $date->format(static::DATE_FORMAT);
             $dayOfWeek = (int) $date->format('N');
             $isWeekend = $dayOfWeek >= 6;
 
@@ -161,5 +180,18 @@ class ProductionCalendar
                 transferredFrom: $holiday?->transferredFrom
             );
         }
+    }
+
+    /**
+     * @throws DateMalformedPeriodStringException
+     */
+    public function hasHolidays(DateTimeInterface $start, DateTimeInterface $end): bool
+    {
+        foreach ($this->getWorkdaysIterator($start, $end) as $date) {
+            if (!$this->isWorkday($date)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -24,6 +24,9 @@ enum DayType: int
 
     public function isNonWorking(): bool
     {
-        return ($this === self::Holiday) || ($this === self::Weekend);
+        return match ($this) {
+            self::Holiday, self::Weekend => true,
+            default => false,
+        };
     }
 }
